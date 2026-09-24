@@ -1,154 +1,1234 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Bancada</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div class="app-shell">
-      <aside class="sidebar">
-        <div class="brand">
-          <div class="brand-mark">B</div>
-          <div>
-            <p class="eyebrow">Workspace</p>
-            <h1>Bancada</h1>
-          </div>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Bancada — Sistema da loja</title>
+<script src="https://cdn.tailwindcss.com" onerror="window.__loadErr && window.__loadErr('Tailwind')"></script>
+<script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js" onerror="window.__loadErr && window.__loadErr('React')"></script>
+<script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js" onerror="window.__loadErr && window.__loadErr('ReactDOM')"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="window.__loadErr && window.__loadErr('Supabase')"></script>
+<script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.24.7/babel.min.js" onerror="window.__loadErr && window.__loadErr('Babel')"></script>
+<script>
+  window.__loadErr = function(name) {
+    var el = document.getElementById('root');
+    if (el) el.innerHTML = '<div style="padding:40px;text-align:center;font-family:sans-serif;color:#B0402F">Não foi possível carregar um recurso externo (' + name + '). Verifique sua conexão e recarregue a página.</div>';
+  };
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap');
+  :root { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; font-family: 'Inter', sans-serif; }
+  body { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); background: #F1F2F4; }
+  * { box-sizing: border-box; }
+  @media print {
+    body * { visibility: hidden; }
+    #recibo-print-area, #recibo-print-area * { visibility: visible; }
+    #recibo-print-area { position: absolute; top: 0; left: 0; width: 100%; margin: 0; box-shadow: none; }
+    .no-print { display: none !important; }
+  }
+  #recibo-print-area { width: 210mm; min-height: 297mm; background: #fff; color: #1A1E24; font-size: 11px; }
+  .recibo-via { padding: 10mm 12mm; height: 138mm; overflow: hidden; }
+  .recibo-corte { display: flex; align-items: center; gap: 8px; color: #8B93A0; font-size: 10px; padding: 0 12mm; }
+  .recibo-corte hr { flex: 1; border: none; border-top: 1px dashed #C3C9D1; }
+  .recibo-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1A1E24; padding-bottom: 6px; margin-bottom: 8px; }
+  .recibo-loja-nome { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; margin: 0; }
+  .recibo-loja-info { font-size: 10px; color: #5B6472; margin: 2px 0 0; }
+  .recibo-via-tag { font-size: 10px; font-weight: 700; border: 1px solid #1A1E24; border-radius: 3px; padding: 2px 8px; white-space: nowrap; }
+  .recibo-titulo { font-size: 12px; font-weight: 600; margin: 0 0 8px; }
+  .recibo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 10px; margin-bottom: 6px; }
+  .recibo-grid div { display: flex; flex-direction: column; }
+  .recibo-grid span, .recibo-bloco span { font-size: 9px; color: #5B6472; }
+  .recibo-grid strong { font-size: 11px; }
+  .recibo-bloco { margin-bottom: 6px; }
+  .recibo-bloco p { font-size: 10.5px; margin: 1px 0 0; }
+  .recibo-legal { margin-top: 6px; border-top: 1px solid #DDE1E6; padding-top: 5px; }
+  .recibo-legal-titulo { font-size: 9px; font-weight: 700; margin: 0 0 3px; }
+  .recibo-legal ul { margin: 0; padding-left: 12px; }
+  .recibo-legal li { font-size: 7.6px; line-height: 1.25; color: #333; margin-bottom: 1.5px; }
+  .recibo-assinaturas { display: flex; gap: 24px; margin-top: 10px; }
+  .recibo-assinaturas > div { flex: 1; text-align: center; }
+  .recibo-assinaturas .linha { border-top: 1px solid #1A1E24; margin-bottom: 3px; }
+  .recibo-assinaturas span { font-size: 9px; color: #5B6472; }
+</style>
+</head>
+<body>
+<div id="root"><div style="padding:40px;text-align:center;font-family:sans-serif;color:#5B6472">Carregando…</div></div>
+<script type="text/babel" data-presets="react">
+try {
+const { useState, useEffect, useMemo, useCallback } = React;
+
+// ---------- Supabase ----------
+const SUPABASE_URL = "https://uoooevhfvcucwvyoweud.supabase.co";
+const SUPABASE_KEY = "sb_publishable_nhesf1RimGFpRh6_WOBOhw_pZHhoB-M";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabaseAuthOnly = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+
+// ---------- Design tokens ----------
+const COLORS = {
+  bg: '#F1F2F4', surface: '#FFFFFF', surfaceAlt: '#F7F8F9',
+  border: '#DDE1E6', borderStrong: '#C3C9D1',
+  textPrimary: '#1A1E24', textSecondary: '#5B6472', textMuted: '#8B93A0',
+  brand: '#28466E', brandSoft: '#E7EDF4',
+  success: '#3F8F5F', successSoft: '#E5F2EA',
+  warning: '#B9762B', warningSoft: '#F6EBDD',
+  danger: '#B0402F', dangerSoft: '#F5E6E3',
+  info: '#4A6FA5', infoSoft: '#E9EEF5',
+};
+
+const STATUS_CONFIG = {
+  'Recebido': { color: COLORS.info, soft: COLORS.infoSoft },
+  'Em análise': { color: COLORS.info, soft: COLORS.infoSoft },
+  'Aguardando peça': { color: COLORS.warning, soft: COLORS.warningSoft },
+  'Em reparo': { color: COLORS.brand, soft: COLORS.brandSoft },
+  'Pronto': { color: COLORS.success, soft: COLORS.successSoft },
+  'Entregue': { color: COLORS.textMuted, soft: COLORS.surfaceAlt },
+  'Cancelado': { color: COLORS.danger, soft: COLORS.dangerSoft },
+};
+const STATUS_ORDER = Object.keys(STATUS_CONFIG);
+
+const DEFAULT_CONFIG = { nome_loja: 'Minha Assistência Técnica', cnpj: '', endereco: '', telefone: '', logo: '', prazo_garantia_dias: 90, prazo_retirada_dias: 90 };
+
+const LEGAL_TEXT = [
+  'Garantia legal: nos termos do art. 26, II, do Código de Defesa do Consumidor (Lei 8.078/90), o cliente tem 90 (noventa) dias, contados da entrega, para reclamar de vícios aparentes no serviço executado ou nas peças substituídas; em caso de vício oculto, o prazo conta a partir da constatação do defeito (art. 26, §3º).',
+  'Reexecução do serviço: havendo vício de qualidade, o cliente pode exigir, à sua escolha, a reexecução do serviço, o abatimento proporcional do valor pago ou a restituição da quantia, conforme art. 20 do CDC.',
+  'Orçamento: os valores informados seguem o art. 40 do CDC e têm validade de 10 (dez) dias, salvo prazo diverso aqui indicado. A execução do serviço só é iniciada após aprovação do cliente.',
+  'Exclusões de garantia: não estão cobertos danos decorrentes de mau uso, quedas, contato com líquidos, oxidação, rompimento de lacre ou intervenção de terceiros após a entrega do aparelho.',
+  'Dados pessoais: as informações do cliente são tratadas exclusivamente para a prestação deste serviço, em conformidade com a Lei Geral de Proteção de Dados (Lei 13.709/2018).',
+  'Retirada do aparelho: o cliente deve retirar o aparelho em até 90 dias após ser avisado da conclusão do serviço. Consulte a legislação do seu estado, pois alguns estados possuem prazo próprio para retirada de bens não buscados.',
+];
+
+const fmtMoney = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
+const fmtDate = (v) => (v ? new Date(v + 'T00:00:00').toLocaleDateString('pt-BR') : '—');
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const toNum = (v) => (v === '' || v === null || v === undefined ? null : Number(v));
+
+// ---------- Icons (unicode, no external icon library needed) ----------
+const ICONS = {
+  menu: '☰', close: '✕', plus: '＋', search: '🔍', edit: '✎', trash: '🗑',
+  printer: '🖨', settings: '⚙', warning: '⚠', check: '✓', up: '▲', down: '▼',
+  wrench: '🔧', users: '👥', package: '📦', wallet: '💰', home: '⌂', scissors: '✂', team: '🔑',
+};
+function Icon({ name, size = 16, color, className }) {
+  return <span className={className} style={{ fontSize: size, lineHeight: 1, color, display: 'inline-block' }}>{ICONS[name] || ''}</span>;
+}
+
+// ---------- UI primitives ----------
+function Button({ children, variant = 'primary', className = '', ...rest }) {
+  const base = 'inline-flex items-center gap-2 px-4 py-2 rounded text-sm font-medium transition-colors disabled:opacity-50';
+  const styles = {
+    primary: { backgroundColor: COLORS.brand, color: '#fff' },
+    secondary: { backgroundColor: COLORS.surface, color: COLORS.textPrimary, border: `1px solid ${COLORS.borderStrong}` },
+    danger: { backgroundColor: COLORS.danger, color: '#fff' },
+  };
+  return <button className={`${base} ${className}`} style={styles[variant]} {...rest}>{children}</button>;
+}
+const inputBase = { width: '100%', padding: '8px 10px', borderRadius: 4, border: `1px solid ${COLORS.border}`, fontSize: 14, color: COLORS.textPrimary, backgroundColor: COLORS.surface };
+function Field({ label, children, required }) {
+  return <label className="block mb-3"><span className="block text-xs font-medium mb-1" style={{ color: COLORS.textSecondary }}>{label}{required && <span style={{ color: COLORS.danger }}> *</span>}</span>{children}</label>;
+}
+function Input(props) { return <input {...props} style={{ ...inputBase, ...(props.style || {}) }} className={`focus:outline-none focus:ring-2 ${props.className || ''}`} />; }
+function Select(props) { return <select {...props} style={{ ...inputBase, ...(props.style || {}) }} className={`focus:outline-none focus:ring-2 ${props.className || ''}`} />; }
+function TextArea(props) { return <textarea {...props} style={{ ...inputBase, ...(props.style || {}), resize: 'vertical' }} className={`focus:outline-none focus:ring-2 ${props.className || ''}`} />; }
+
+function Modal({ title, onClose, children, wide }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-4 overflow-y-auto" style={{ backgroundColor: 'rgba(20,22,26,0.5)' }} onClick={onClose}>
+      <div className={`w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded my-8`} style={{ backgroundColor: COLORS.surface, border: `1px solid ${COLORS.border}` }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+          <h3 className="text-base font-semibold" style={{ color: COLORS.textPrimary }}>{title}</h3>
+          <button onClick={onClose} className="p-1 rounded hover:opacity-70"><Icon name="close" size={18} color={COLORS.textSecondary} /></button>
         </div>
-
-        <nav class="nav">
-          <button class="nav-item active">Overview</button>
-          <button class="nav-item">Projects</button>
-          <button class="nav-item">Analytics</button>
-          <button class="nav-item">Team</button>
-          <button class="nav-item">Settings</button>
-        </nav>
-
-        <div class="status-card">
-          <p>System status</p>
-          <strong>Healthy</strong>
-          <span>All services online</span>
-        </div>
-      </aside>
-
-      <main class="main-panel">
-        <header class="topbar">
-          <div>
-            <p class="eyebrow">Dashboard</p>
-            <h2>Operations overview</h2>
-          </div>
-          <button class="primary-btn">New project</button>
-        </header>
-
-        <section class="hero">
-          <div class="hero-copy">
-            <p class="eyebrow accent">Live workspace</p>
-            <h3>Keep your team moving with clarity.</h3>
-            <p>
-              Bring projects, metrics, and delivery updates together in one focused place.
-            </p>
-            <div class="hero-actions">
-              <button class="primary-btn">Launch sprint</button>
-              <button class="secondary-btn">View report</button>
-            </div>
-          </div>
-          <div class="hero-graph">
-            <div class="chart-bars">
-              <span style="height: 28%"></span>
-              <span style="height: 52%"></span>
-              <span style="height: 64%"></span>
-              <span style="height: 42%"></span>
-              <span style="height: 78%"></span>
-              <span style="height: 90%"></span>
-              <span style="height: 68%"></span>
-            </div>
-            <div class="chart-legend">
-              <span><i class="dot blue"></i> Cycle</span>
-              <span><i class="dot green"></i> Quality</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="cards">
-          <article class="metric-card">
-            <p>Active tasks</p>
-            <h3 id="tasks-count">128</h3>
-            <span class="trend up">+12.4% vs last week</span>
-          </article>
-          <article class="metric-card">
-            <p>Velocity</p>
-            <h3 id="velocity-value">84%</h3>
-            <span class="trend up">+6.1% this sprint</span>
-          </article>
-          <article class="metric-card">
-            <p>Team capacity</p>
-            <h3 id="capacity-value">91%</h3>
-            <span class="trend down">-3.2% after planned leave</span>
-          </article>
-        </section>
-
-        <section class="panel-grid">
-          <article class="panel">
-            <div class="panel-header">
-              <h4>Recent work</h4>
-              <button>Filter</button>
-            </div>
-            <ul class="activity-list">
-              <li>
-                <div class="bullet blue"></div>
-                <div>
-                  <strong>Marketing launch</strong>
-                  <small>Updated campaign checklist</small>
-                </div>
-                <span>2h ago</span>
-              </li>
-              <li>
-                <div class="bullet green"></div>
-                <div>
-                  <strong>Product sync</strong>
-                  <small>Shared sprint review notes</small>
-                </div>
-                <span>4h ago</span>
-              </li>
-              <li>
-                <div class="bullet purple"></div>
-                <div>
-                  <strong>Client handoff</strong>
-                  <small>Delivered revised roadmap</small>
-                </div>
-                <span>1d ago</span>
-              </li>
-            </ul>
-          </article>
-
-          <article class="panel">
-            <div class="panel-header">
-              <h4>Priority list</h4>
-              <button>See all</button>
-            </div>
-            <ul class="priority-list">
-              <li>
-                <span class="title">Research backlog</span>
-                <span class="badge">High</span>
-              </li>
-              <li>
-                <span class="title">Client onboarding</span>
-                <span class="badge medium">Medium</span>
-              </li>
-              <li>
-                <span class="title">Analytics cleanup</span>
-                <span class="badge low">Low</span>
-              </li>
-            </ul>
-          </article>
-        </section>
-      </main>
+        <div className="px-5 py-4">{children}</div>
+      </div>
     </div>
+  );
+}
+function ConfirmModal({ message, onConfirm, onCancel }) {
+  return (
+    <Modal title="Confirmar exclusão" onClose={onCancel}>
+      <p className="text-sm mb-4" style={{ color: COLORS.textSecondary }}>{message}</p>
+      <div className="flex justify-end gap-2"><Button variant="secondary" onClick={onCancel}>Cancelar</Button><Button variant="danger" onClick={onConfirm}>Excluir</Button></div>
+    </Modal>
+  );
+}
+function StatusBadge({ status }) {
+  const cfg = STATUS_CONFIG[status] || { color: COLORS.textMuted, soft: COLORS.surfaceAlt };
+  return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap" style={{ backgroundColor: cfg.soft, color: cfg.color, borderLeft: `3px solid ${cfg.color}` }}>{status}</span>;
+}
+function EmptyState({ icon, title, subtitle }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <Icon name={icon} size={30} color={COLORS.textMuted} />
+      <p className="mt-3 text-sm font-medium" style={{ color: COLORS.textPrimary }}>{title}</p>
+      {subtitle && <p className="mt-1 text-xs" style={{ color: COLORS.textMuted }}>{subtitle}</p>}
+    </div>
+  );
+}
+function ErrorBanner({ message }) {
+  if (!message) return null;
+  return <div className="mb-4 px-3 py-2 rounded text-xs" style={{ backgroundColor: COLORS.dangerSoft, color: COLORS.danger }}>{message}</div>;
+}
 
-    <script src="script.js"></script>
-  </body>
+// ---------- Data hook (Supabase) ----------
+function useTable(table, orderBy) {
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+
+  const reload = useCallback(async () => {
+    setLoading(true);
+    const { data, error } = await supabase.from(table).select('*').order(orderBy || 'id', { ascending: false });
+    if (error) setErr(error.message); else { setRows(data || []); setErr(''); }
+    setLoading(false);
+  }, [table, orderBy]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  const insert = async (row) => { const { error } = await supabase.from(table).insert(row); if (error) throw error; await reload(); };
+  const update = async (id, row) => { const { error } = await supabase.from(table).update(row).eq('id', id); if (error) throw error; await reload(); };
+  const remove = async (id) => { const { error } = await supabase.from(table).delete().eq('id', id); if (error) throw error; await reload(); };
+
+  return { rows, loading, err, reload, insert, update, remove };
+}
+
+// ---------- Login ----------
+function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setLoading(true); setError('');
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) setError(error.message + ' (código: ' + (error.status || error.code || '—') + ')');
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: COLORS.bg }}>
+      <div className="w-full max-w-sm p-6 rounded" style={{ backgroundColor: COLORS.surface, border: `1px solid ${COLORS.border}` }}>
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-9 h-9 rounded flex items-center justify-center" style={{ backgroundColor: COLORS.brand }}><Icon name="wrench" color="#fff" /></div>
+          <div><p className="font-semibold leading-none" style={{ fontFamily: "'JetBrains Mono', monospace", color: COLORS.textPrimary }}>Bancada</p><p className="text-xs mt-1" style={{ color: COLORS.textMuted }}>entrar no sistema</p></div>
+        </div>
+        <form onSubmit={submit}>
+          <Field label="E-mail" required><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus /></Field>
+          <Field label="Senha" required><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required /></Field>
+          {error && <p className="text-xs mb-3" style={{ color: COLORS.danger }}>{error}</p>}
+          <Button type="submit" className="w-full justify-center" disabled={loading}>{loading ? 'Entrando…' : 'Entrar'}</Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Sidebar ----------
+function Sidebar({ items, active, onNavigate, mobileOpen, onCloseMobile, isDono, onOpenConfig }) {
+  return (
+    <>
+      {mobileOpen && <div className="fixed inset-0 z-40 md:hidden" style={{ backgroundColor: 'rgba(20,22,26,0.5)' }} onClick={onCloseMobile} />}
+      <aside className={`fixed md:static z-50 md:z-auto top-0 left-0 h-full w-64 flex flex-col shrink-0 transition-transform md:translate-x-0 ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`} style={{ backgroundColor: COLORS.brand }}>
+        <div className="flex items-center gap-2 px-5 py-5">
+          <div className="w-8 h-8 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}><Icon name="wrench" size={16} color="#fff" /></div>
+          <div><p className="text-white font-semibold leading-none" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Bancada</p><p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.6)' }}>gestão da assistência</p></div>
+        </div>
+        <nav className="flex-1 px-3 mt-2 space-y-1">
+          {items.map((item) => {
+            const isActive = active === item.id;
+            return (
+              <button key={item.id} onClick={() => { onNavigate(item.id); onCloseMobile(); }} className="w-full flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-colors text-left"
+                style={{ backgroundColor: isActive ? 'rgba(255,255,255,0.12)' : 'transparent', color: isActive ? '#fff' : 'rgba(255,255,255,0.7)' }}>
+                <Icon name={item.icon} size={16} /> {item.label}
+              </button>
+            );
+          })}
+        </nav>
+        {isDono && (
+          <button onClick={onOpenConfig} className="mx-3 mb-4 flex items-center gap-2 px-3 py-2 rounded text-xs font-medium" style={{ color: 'rgba(255,255,255,0.7)', backgroundColor: 'rgba(255,255,255,0.06)' }}>
+            <Icon name="settings" size={14} /> Dados da loja
+          </button>
+        )}
+      </aside>
+    </>
+  );
+}
+
+// ---------- Dashboard ----------
+function computeMonthlyTotals(financeiro) {
+  const months = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.toISOString().slice(0, 7);
+    const label = d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
+    months.push({ key, label, receita: 0, despesa: 0 });
+  }
+  financeiro.forEach((t) => {
+    const key = (t.data || '').slice(0, 7);
+    const m = months.find((mm) => mm.key === key);
+    if (m) { if (t.tipo === 'entrada') m.receita += Number(t.valor) || 0; else m.despesa += Number(t.valor) || 0; }
+  });
+  return months;
+}
+function MiniBarChart({ data }) {
+  const max = Math.max(1, ...data.flatMap((d) => [d.receita, d.despesa]));
+  return (
+    <div className="flex items-end gap-3" style={{ height: 180 }}>
+      {data.map((d) => (
+        <div key={d.key} className="flex-1 flex flex-col items-center gap-1">
+          <div className="w-full flex items-end gap-1" style={{ height: 150 }}>
+            <div style={{ flex: 1, height: `${(d.receita / max) * 100}%`, backgroundColor: COLORS.success, borderRadius: '2px 2px 0 0', minHeight: d.receita ? 2 : 0 }} title={fmtMoney(d.receita)} />
+            <div style={{ flex: 1, height: `${(d.despesa / max) * 100}%`, backgroundColor: COLORS.danger, borderRadius: '2px 2px 0 0', minHeight: d.despesa ? 2 : 0 }} title={fmtMoney(d.despesa)} />
+          </div>
+          <span className="text-xs capitalize" style={{ color: COLORS.textSecondary }}>{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+function Dashboard({ clientes, ordens, estoque, financeiro, isDono, onNavigate }) {
+  const thisMonth = todayISO().slice(0, 7);
+  const ordensAbertas = ordens.filter((o) => !['Entregue', 'Cancelado'].includes(o.status));
+  const ordensProntas = ordens.filter((o) => o.status === 'Pronto');
+  const estoqueBaixo = estoque.filter((p) => Number(p.quantidade) <= Number(p.estoque_minimo || 0));
+  const receitaMes = financeiro.filter((t) => t.tipo === 'entrada' && (t.data || '').startsWith(thisMonth)).reduce((s, t) => s + Number(t.valor || 0), 0);
+  const despesaMes = financeiro.filter((t) => t.tipo === 'saida' && (t.data || '').startsWith(thisMonth)).reduce((s, t) => s + Number(t.valor || 0), 0);
+  const chartData = useMemo(() => computeMonthlyTotals(financeiro), [financeiro]);
+  const recentOrders = [...ordens].sort((a, b) => (b.data_entrada || '').localeCompare(a.data_entrada || '')).slice(0, 5);
+
+  const cards = [
+    { label: 'Ordens em andamento', value: ordensAbertas.length, icon: 'wrench', color: COLORS.brand, onClick: () => onNavigate('ordens') },
+    { label: 'Prontas para retirada', value: ordensProntas.length, icon: 'check', color: COLORS.success, onClick: () => onNavigate('ordens') },
+    { label: 'Peças com estoque baixo', value: estoqueBaixo.length, icon: 'warning', color: COLORS.warning, onClick: () => onNavigate('estoque') },
+  ];
+  if (isDono) cards.push({ label: 'Saldo do mês', value: fmtMoney(receitaMes - despesaMes), icon: 'wallet', color: COLORS.info, onClick: () => onNavigate('financeiro') });
+
+  return (
+    <div>
+      <h1 className="text-xl font-semibold mb-1" style={{ color: COLORS.textPrimary }}>Painel</h1>
+      <p className="text-sm mb-6 capitalize" style={{ color: COLORS.textSecondary }}>{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        {cards.map((c, i) => (
+          <button key={i} onClick={c.onClick} className="text-left p-4 rounded" style={{ backgroundColor: COLORS.surface, border: `1px solid ${COLORS.border}` }}>
+            <Icon name={c.icon} size={18} color={c.color} />
+            <p className="mt-3 text-2xl font-semibold" style={{ fontFamily: "'JetBrains Mono', monospace", color: COLORS.textPrimary }}>{c.value}</p>
+            <p className="text-xs mt-1" style={{ color: COLORS.textSecondary }}>{c.label}</p>
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {isDono && (
+          <div className="lg:col-span-3 p-4 rounded" style={{ backgroundColor: COLORS.surface, border: `1px solid ${COLORS.border}` }}>
+            <p className="text-sm font-medium mb-4" style={{ color: COLORS.textPrimary }}>Receita x despesa (últimos 6 meses)</p>
+            <MiniBarChart data={chartData} />
+            <div className="flex gap-4 mt-3 text-xs"><span style={{ color: COLORS.success }}>■ Receita</span><span style={{ color: COLORS.danger }}>■ Despesa</span></div>
+          </div>
+        )}
+        <div className={isDono ? 'lg:col-span-2 p-4 rounded' : 'lg:col-span-5 p-4 rounded'} style={{ backgroundColor: COLORS.surface, border: `1px solid ${COLORS.border}` }}>
+          <p className="text-sm font-medium mb-3" style={{ color: COLORS.textPrimary }}>Últimas ordens</p>
+          {recentOrders.length === 0 ? <p className="text-xs" style={{ color: COLORS.textMuted }}>Nenhuma ordem cadastrada ainda.</p> : (
+            <div className="space-y-2">
+              {recentOrders.map((o) => (
+                <div key={o.id} className="flex items-center justify-between py-2" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                  <div className="min-w-0"><p className="text-sm font-medium truncate" style={{ color: COLORS.textPrimary }}>{o.aparelho}</p><p className="text-xs truncate" style={{ color: COLORS.textMuted }}>{clientes.find((c) => c.id === o.cliente_id)?.nome || 'Cliente removido'}</p></div>
+                  <StatusBadge status={o.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Clientes ----------
+function ClientesView({ table }) {
+  const [search, setSearch] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [formErr, setFormErr] = useState('');
+
+  const filtered = table.rows.filter((c) => c.nome.toLowerCase().includes(search.toLowerCase()) || (c.telefone || '').includes(search)).sort((a, b) => a.nome.localeCompare(b.nome));
+
+  const save = async (data) => {
+    try {
+      const { id, ...rest } = data;
+      if (id) await table.update(id, rest); else await table.insert(rest);
+      setEditing(null); setFormErr('');
+    } catch (e) { setFormErr(e.message); }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <h1 className="text-xl font-semibold" style={{ color: COLORS.textPrimary }}>Clientes</h1>
+        <Button onClick={() => setEditing({})}><Icon name="plus" size={16} /> Novo cliente</Button>
+      </div>
+      <ErrorBanner message={table.err} />
+      <div className="relative mb-4 max-w-sm">
+        <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2" color={COLORS.textMuted} />
+        <Input placeholder="Buscar por nome ou telefone" value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: 32 }} />
+      </div>
+      {filtered.length === 0 ? <EmptyState icon="users" title="Nenhum cliente encontrado" subtitle="Cadastre o primeiro cliente da loja." /> : (
+        <div className="rounded overflow-hidden" style={{ border: `1px solid ${COLORS.border}` }}>
+          {filtered.map((c) => (
+            <div key={c.id} className="flex items-center justify-between px-4 py-3 gap-3" style={{ backgroundColor: COLORS.surface, borderBottom: `1px solid ${COLORS.border}` }}>
+              <div className="min-w-0"><p className="text-sm font-medium truncate" style={{ color: COLORS.textPrimary }}>{c.nome}</p><p className="text-xs truncate" style={{ color: COLORS.textMuted }}>{c.telefone}{c.email ? ` · ${c.email}` : ''}</p></div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button onClick={() => setEditing(c)} className="p-2 rounded hover:opacity-70"><Icon name="edit" size={15} color={COLORS.textSecondary} /></button>
+                <button onClick={() => setDeleting(c)} className="p-2 rounded hover:opacity-70"><Icon name="trash" size={15} color={COLORS.danger} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {editing !== null && <ClienteForm cliente={editing} error={formErr} onClose={() => { setEditing(null); setFormErr(''); }} onSave={save} />}
+      {deleting && <ConfirmModal message={`Excluir o cliente "${deleting.nome}"? As ordens de serviço vinculadas a ele não serão apagadas.`} onCancel={() => setDeleting(null)} onConfirm={async () => { await table.remove(deleting.id); setDeleting(null); }} />}
+    </div>
+  );
+}
+function ClienteForm({ cliente, error, onClose, onSave }) {
+  const [form, setForm] = useState({ id: cliente.id, nome: cliente.nome || '', telefone: cliente.telefone || '', email: cliente.email || '', endereco: cliente.endereco || '' });
+  const submit = (e) => { e.preventDefault(); if (!form.nome.trim()) return; onSave(form); };
+  return (
+    <Modal title={cliente.id ? 'Editar cliente' : 'Novo cliente'} onClose={onClose}>
+      <form onSubmit={submit}>
+        <Field label="Nome" required><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} required autoFocus /></Field>
+        <Field label="Telefone"><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} placeholder="(21) 90000-0000" /></Field>
+        <Field label="E-mail"><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
+        <Field label="Endereço"><Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} /></Field>
+        {error && <p className="text-xs mb-2" style={{ color: COLORS.danger }}>{error}</p>}
+        <div className="flex justify-end gap-2 mt-4"><Button variant="secondary" type="button" onClick={onClose}>Cancelar</Button><Button type="submit">Salvar</Button></div>
+      </form>
+    </Modal>
+  );
+}
+
+// ---------- Ordens ----------
+function OrdensView({ table, clientesRows, config, onLancarFinanceiro }) {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Todos');
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [printing, setPrinting] = useState(null);
+  const [entregando, setEntregando] = useState(null);
+  const [formErr, setFormErr] = useState('');
+
+  const clienteNome = (id) => clientesRows.find((c) => c.id === id)?.nome || 'Cliente removido';
+  const filtered = table.rows.filter((o) => {
+    const matchesStatus = statusFilter === 'Todos' || o.status === statusFilter;
+    const matchesSearch = !search || o.aparelho.toLowerCase().includes(search.toLowerCase()) || clienteNome(o.cliente_id).toLowerCase().includes(search.toLowerCase());
+    return matchesStatus && matchesSearch;
+  }).sort((a, b) => (b.data_entrada || '').localeCompare(a.data_entrada || ''));
+
+  const save = async (data) => {
+    try {
+      const { id, ...rest } = data;
+      rest.valor_orcamento = toNum(rest.valor_orcamento);
+      rest.valor_final = toNum(rest.valor_final);
+      if (id) await table.update(id, rest); else await table.insert(rest);
+      setEditing(null); setFormErr('');
+    } catch (e) { setFormErr(e.message); }
+  };
+
+  const confirmarEntrega = async (ordem, { valor, descricao }) => {
+    await onLancarFinanceiro({ tipo: 'entrada', descricao, valor: toNum(valor), categoria: 'Serviço', data: todayISO() });
+    await table.update(ordem.id, { status: 'Entregue', valor_final: toNum(valor) });
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <h1 className="text-xl font-semibold" style={{ color: COLORS.textPrimary }}>Ordens de serviço</h1>
+        <Button onClick={() => setEditing({})}><Icon name="plus" size={16} /> Nova ordem</Button>
+      </div>
+      <ErrorBanner message={table.err} />
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2" color={COLORS.textMuted} />
+          <Input placeholder="Buscar por aparelho ou cliente" value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: 32 }} />
+        </div>
+        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ width: 'auto' }}>
+          <option value="Todos">Todos os status</option>
+          {STATUS_ORDER.map((s) => <option key={s} value={s}>{s}</option>)}
+        </Select>
+      </div>
+      {filtered.length === 0 ? <EmptyState icon="wrench" title="Nenhuma ordem encontrada" subtitle="Crie uma ordem de serviço para começar a acompanhar um reparo." /> : (
+        <div className="space-y-2">
+          {filtered.map((o) => (
+            <div key={o.id} className="p-4 rounded flex flex-col sm:flex-row sm:items-center justify-between gap-3" style={{ backgroundColor: COLORS.surface, border: `1px solid ${COLORS.border}` }}>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap"><p className="text-sm font-medium" style={{ color: COLORS.textPrimary }}>{o.aparelho}</p><StatusBadge status={o.status} /></div>
+                <p className="text-xs mt-1" style={{ color: COLORS.textMuted }}>{clienteNome(o.cliente_id)} · entrada {fmtDate(o.data_entrada)}{o.fotos && o.fotos.length > 0 ? ` · 📷 ${o.fotos.length}` : ''}</p>
+                <p className="text-xs mt-0.5 truncate max-w-md" style={{ color: COLORS.textSecondary }}>{o.problema}</p>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <p className="text-sm font-medium" style={{ fontFamily: "'JetBrains Mono', monospace", color: COLORS.textPrimary }}>{fmtMoney(o.valor_final || o.valor_orcamento || 0)}</p>
+                {!['Entregue', 'Cancelado'].includes(o.status) && (
+                  <button onClick={() => setEntregando(o)} className="p-2 rounded hover:opacity-70" title="Entregar e lançar no caixa"><Icon name="check" size={15} color={COLORS.success} /></button>
+                )}
+                <button onClick={() => setPrinting(o)} className="p-2 rounded hover:opacity-70" title="Emitir recibo"><Icon name="printer" size={15} color={COLORS.textSecondary} /></button>
+                <button onClick={() => setEditing(o)} className="p-2 rounded hover:opacity-70"><Icon name="edit" size={15} color={COLORS.textSecondary} /></button>
+                <button onClick={() => setDeleting(o)} className="p-2 rounded hover:opacity-70"><Icon name="trash" size={15} color={COLORS.danger} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {editing !== null && <OrdemForm ordem={editing} clientes={clientesRows} error={formErr} onClose={() => { setEditing(null); setFormErr(''); }} onSave={save} />}
+      {deleting && <ConfirmModal message={`Excluir a ordem de serviço de "${deleting.aparelho}"?`} onCancel={() => setDeleting(null)} onConfirm={async () => { await table.remove(deleting.id); setDeleting(null); }} />}
+      {printing && <ReciboModal ordem={printing} cliente={clientesRows.find((c) => c.id === printing.cliente_id)} config={config} onClose={() => setPrinting(null)} />}
+      {entregando && <EntregaModal ordem={entregando} cliente={clientesRows.find((c) => c.id === entregando.cliente_id)} onClose={() => setEntregando(null)} onConfirm={(data) => confirmarEntrega(entregando, data)} />}
+    </div>
+  );
+}
+function EntregaModal({ ordem, cliente, onClose, onConfirm }) {
+  const [valor, setValor] = useState(ordem.valor_final || ordem.valor_orcamento || '');
+  const [descricao, setDescricao] = useState(`Entrega OS #${ordem.numero} — ${ordem.aparelho}`);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true); setError('');
+    try { await onConfirm({ valor, descricao }); onClose(); }
+    catch (err) { setError(err.message); setSaving(false); }
+  };
+
+  return (
+    <Modal title={`Entregar — Ordem #${ordem.numero}`} onClose={onClose}>
+      <p className="text-xs mb-3" style={{ color: COLORS.textMuted }}>Isso marca a ordem como "Entregue" e lança uma entrada no caixa (Financeiro).</p>
+      <p className="text-sm mb-3" style={{ color: COLORS.textPrimary }}>Cliente: <strong>{cliente?.nome || '—'}</strong></p>
+      <form onSubmit={submit}>
+        <Field label="Descrição do lançamento" required><Input value={descricao} onChange={(e) => setDescricao(e.target.value)} required /></Field>
+        <Field label="Valor recebido (R$)" required><Input type="number" step="0.01" min="0" value={valor} onChange={(e) => setValor(e.target.value)} required autoFocus /></Field>
+        {error && <p className="text-xs mb-2" style={{ color: COLORS.danger }}>{error}</p>}
+        <div className="flex justify-end gap-2 mt-4"><Button variant="secondary" type="button" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={saving}>{saving ? 'Confirmando…' : 'Confirmar entrega'}</Button></div>
+      </form>
+    </Modal>
+  );
+}
+function OrdemForm({ ordem, clientes, error, onClose, onSave }) {
+  const [form, setForm] = useState({
+    id: ordem.id, numero: ordem.numero || String(Date.now()).slice(-6), cliente_id: ordem.cliente_id || (clientes[0]?.id || ''),
+    aparelho: ordem.aparelho || '', imei: ordem.imei || '', problema: ordem.problema || '', status: ordem.status || 'Recebido',
+    valor_orcamento: ordem.valor_orcamento ?? '', valor_final: ordem.valor_final ?? '',
+    data_entrada: ordem.data_entrada || todayISO(), data_previsao: ordem.data_previsao || '', tecnico: ordem.tecnico || '', observacoes: ordem.observacoes || '',
+    fotos: ordem.fotos || [],
+  });
+  const [fotoBusy, setFotoBusy] = useState(false);
+  const [fotoErr, setFotoErr] = useState('');
+  const submit = (e) => { e.preventDefault(); if (!form.aparelho.trim() || !form.cliente_id) return; onSave(form); };
+  const handleFotos = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    setFotoBusy(true); setFotoErr('');
+    try {
+      const urls = [];
+      for (const file of files) urls.push(await uploadFoto(file, 'ordens', 1000));
+      setForm((f) => ({ ...f, fotos: [...f.fotos, ...urls] }));
+    } catch (err) { setFotoErr(err.message); }
+    setFotoBusy(false);
+    e.target.value = '';
+  };
+  const removerFoto = (url) => setForm((f) => ({ ...f, fotos: f.fotos.filter((u) => u !== url) }));
+  if (clientes.length === 0) {
+    return <Modal title="Nova ordem de serviço" onClose={onClose}><p className="text-sm" style={{ color: COLORS.textSecondary }}>Cadastre um cliente antes de abrir uma ordem de serviço.</p><div className="flex justify-end mt-4"><Button variant="secondary" onClick={onClose}>Fechar</Button></div></Modal>;
+  }
+  return (
+    <Modal title={ordem.id ? `Ordem #${form.numero}` : 'Nova ordem de serviço'} onClose={onClose} wide>
+      <form onSubmit={submit}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+          <Field label="Cliente" required><Select value={form.cliente_id} onChange={(e) => setForm({ ...form, cliente_id: e.target.value })} required>{clientes.map((c) => <option key={c.id} value={c.id}>{c.nome}</option>)}</Select></Field>
+          <Field label="Aparelho (marca e modelo)" required><Input value={form.aparelho} onChange={(e) => setForm({ ...form, aparelho: e.target.value })} placeholder="ex: Samsung Galaxy A54" required /></Field>
+        </div>
+        <Field label="IMEI / número de série"><Input value={form.imei} onChange={(e) => setForm({ ...form, imei: e.target.value })} placeholder="opcional" /></Field>
+        <Field label="Problema relatado" required><TextArea rows={2} value={form.problema} onChange={(e) => setForm({ ...form, problema: e.target.value })} required /></Field>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4">
+          <Field label="Status"><Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{STATUS_ORDER.map((s) => <option key={s} value={s}>{s}</option>)}</Select></Field>
+          <Field label="Data de entrada"><Input type="date" value={form.data_entrada} onChange={(e) => setForm({ ...form, data_entrada: e.target.value })} /></Field>
+          <Field label="Previsão de entrega"><Input type="date" value={form.data_previsao} onChange={(e) => setForm({ ...form, data_previsao: e.target.value })} /></Field>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4">
+          <Field label="Orçamento (R$)"><Input type="number" step="0.01" min="0" value={form.valor_orcamento} onChange={(e) => setForm({ ...form, valor_orcamento: e.target.value })} /></Field>
+          <Field label="Valor final (R$)"><Input type="number" step="0.01" min="0" value={form.valor_final} onChange={(e) => setForm({ ...form, valor_final: e.target.value })} /></Field>
+          <Field label="Técnico responsável"><Input value={form.tecnico} onChange={(e) => setForm({ ...form, tecnico: e.target.value })} /></Field>
+        </div>
+        <Field label="Observações"><TextArea rows={2} value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} /></Field>
+        <Field label="Fotos do aparelho (entrada)">
+          <input type="file" accept="image/*" multiple onChange={handleFotos} className="text-xs" style={{ color: COLORS.textSecondary }} />
+          {fotoBusy && <p className="text-xs mt-1" style={{ color: COLORS.textMuted }}>Enviando…</p>}
+          {fotoErr && <p className="text-xs mt-1" style={{ color: COLORS.danger }}>{fotoErr}</p>}
+          {form.fotos.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {form.fotos.map((url) => (
+                <div key={url} className="relative">
+                  <a href={url} target="_blank" rel="noreferrer"><img src={url} alt="" style={{ height: 64, width: 64, objectFit: 'cover', borderRadius: 4, border: `1px solid ${COLORS.border}` }} /></a>
+                  <button type="button" onClick={() => removerFoto(url)} className="absolute -top-1.5 -right-1.5 rounded-full flex items-center justify-center" style={{ width: 18, height: 18, backgroundColor: COLORS.danger, color: '#fff', fontSize: 11, lineHeight: 1 }}>✕</button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Field>
+        {error && <p className="text-xs mb-2" style={{ color: COLORS.danger }}>{error}</p>}
+        <div className="flex justify-end gap-2 mt-4"><Button variant="secondary" type="button" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={fotoBusy}>Salvar</Button></div>
+      </form>
+    </Modal>
+  );
+}
+
+// ---------- Recibo ----------
+function ReciboVia({ via, ordem, cliente, config }) {
+  return (
+    <div className="recibo-via">
+      <div className="recibo-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {config.logo && <img src={config.logo} alt="" style={{ height: 30, width: 30, objectFit: 'contain', flexShrink: 0 }} />}
+          <div><p className="recibo-loja-nome">{config.nome_loja || 'Assistência técnica'}</p><p className="recibo-loja-info">{[config.cnpj && `CNPJ ${config.cnpj}`, config.endereco, config.telefone].filter(Boolean).join(' · ') || 'Cadastre os dados da loja em Configurações'}</p></div>
+        </div>
+        <div className="recibo-via-tag">{via}</div>
+      </div>
+      <p className="recibo-titulo">Comprovante de ordem de serviço nº {ordem.numero}</p>
+      <div className="recibo-grid"><div><span>Data de entrada</span><strong>{fmtDate(ordem.data_entrada)}</strong></div><div><span>Previsão de entrega</span><strong>{fmtDate(ordem.data_previsao) || '—'}</strong></div><div><span>Status</span><strong>{ordem.status}</strong></div></div>
+      <div className="recibo-grid"><div><span>Cliente</span><strong>{cliente?.nome || 'Cliente removido'}</strong></div><div><span>Telefone</span><strong>{cliente?.telefone || '—'}</strong></div></div>
+      <div className="recibo-grid"><div><span>Aparelho</span><strong>{ordem.aparelho}</strong></div><div><span>IMEI / série</span><strong>{ordem.imei || '—'}</strong></div></div>
+      <div className="recibo-bloco"><span>Problema relatado</span><p>{ordem.problema}</p></div>
+      <div className="recibo-grid"><div><span>Orçamento</span><strong>{fmtMoney(ordem.valor_orcamento || 0)}</strong></div><div><span>Valor final</span><strong>{fmtMoney(ordem.valor_final || 0)}</strong></div><div><span>Técnico</span><strong>{ordem.tecnico || '—'}</strong></div></div>
+      <div className="recibo-legal"><p className="recibo-legal-titulo">Garantia e condições (Código de Defesa do Consumidor — Lei 8.078/90 — e LGPD — Lei 13.709/2018)</p><ul>{LEGAL_TEXT.map((t, i) => <li key={i}>{t}</li>)}</ul></div>
+      <div className="recibo-assinaturas"><div><div className="linha" /><span>Assinatura do cliente</span></div><div><div className="linha" /><span>Assinatura da loja</span></div></div>
+    </div>
+  );
+}
+function ReciboModal({ ordem, cliente, config, onClose }) {
+  const previewContent = (
+    <>
+      <ReciboVia via="Via do cliente" ordem={ordem} cliente={cliente} config={config} />
+      <div className="recibo-corte"><Icon name="scissors" size={12} /><hr /><span>corte aqui</span><hr /></div>
+      <ReciboVia via="Via da loja" ordem={ordem} cliente={cliente} config={config} />
+    </>
+  );
+  return (
+    <>
+      <div className="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto no-print" style={{ backgroundColor: 'rgba(20,22,26,0.6)' }}>
+        <div className="rounded my-6" style={{ backgroundColor: COLORS.surface, maxWidth: '230mm', width: '100%' }}>
+          <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+            <h3 className="text-base font-semibold" style={{ color: COLORS.textPrimary }}>Recibo — Ordem #{ordem.numero}</h3>
+            <div className="flex items-center gap-2"><Button onClick={() => window.print()}><Icon name="printer" size={15} /> Imprimir / salvar PDF</Button><button onClick={onClose} className="p-1 rounded hover:opacity-70"><Icon name="close" size={18} color={COLORS.textSecondary} /></button></div>
+          </div>
+          <div className="px-5 py-4 overflow-x-auto" style={{ backgroundColor: COLORS.surfaceAlt }}>
+            <div style={{ margin: '0 auto', width: '210mm', boxShadow: '0 0 0 1px #DDE1E6' }}>{previewContent}</div>
+          </div>
+          <p className="px-5 py-3 text-xs" style={{ color: COLORS.textMuted, borderTop: `1px solid ${COLORS.border}` }}>No diálogo de impressão, escolha "Salvar como PDF" para gerar o arquivo em vez de imprimir no papel.</p>
+        </div>
+      </div>
+      {ReactDOM.createPortal(<div id="recibo-print-area">{previewContent}</div>, document.body)}
+    </>
+  );
+}
+
+// ---------- Estoque ----------
+function EstoqueView({ table, onLancarFinanceiro }) {
+  const [search, setSearch] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [vendendo, setVendendo] = useState(null);
+  const [novaVenda, setNovaVenda] = useState(false);
+  const [formErr, setFormErr] = useState('');
+  const filtered = table.rows.filter((p) => p.nome.toLowerCase().includes(search.toLowerCase())).sort((a, b) => a.nome.localeCompare(b.nome));
+
+  const save = async (data) => {
+    try {
+      const { id, ...rest } = data;
+      rest.quantidade = toNum(rest.quantidade) ?? 0;
+      rest.estoque_minimo = toNum(rest.estoque_minimo) ?? 0;
+      rest.preco_custo = toNum(rest.preco_custo);
+      rest.preco_venda = toNum(rest.preco_venda);
+      if (id) await table.update(id, rest); else await table.insert(rest);
+      setEditing(null); setFormErr('');
+    } catch (e) { setFormErr(e.message); }
+  };
+
+  const confirmarVenda = async (peca, { quantidade, valorTotal, descricao }) => {
+    await onLancarFinanceiro({ tipo: 'entrada', descricao, valor: toNum(valorTotal), categoria: 'Produto', data: todayISO() });
+    const novaQtd = Math.max(0, Number(peca.quantidade || 0) - Number(quantidade || 0));
+    await table.update(peca.id, { quantidade: novaQtd });
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <h1 className="text-xl font-semibold" style={{ color: COLORS.textPrimary }}>Estoque de peças</h1>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={() => setNovaVenda(true)} disabled={table.rows.length === 0}><Icon name="wallet" size={16} /> Nova venda</Button>
+          <Button onClick={() => setEditing({})}><Icon name="plus" size={16} /> Nova peça</Button>
+        </div>
+      </div>
+      <ErrorBanner message={table.err} />
+      <div className="relative mb-4 max-w-sm"><Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2" color={COLORS.textMuted} /><Input placeholder="Buscar peça" value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: 32 }} /></div>
+      {filtered.length === 0 ? <EmptyState icon="package" title="Nenhuma peça cadastrada" subtitle="Adicione as peças que você usa nos reparos." /> : (
+        <div className="rounded overflow-x-auto" style={{ border: `1px solid ${COLORS.border}` }}>
+          <table className="w-full text-sm" style={{ backgroundColor: COLORS.surface }}>
+            <thead><tr style={{ backgroundColor: COLORS.surfaceAlt, borderBottom: `1px solid ${COLORS.border}` }}>
+              <th className="text-left px-4 py-2 font-medium" style={{ color: COLORS.textSecondary }}>Peça</th>
+              <th className="text-left px-4 py-2 font-medium" style={{ color: COLORS.textSecondary }}>Categoria</th>
+              <th className="text-right px-4 py-2 font-medium" style={{ color: COLORS.textSecondary }}>Qtd.</th>
+              <th className="text-right px-4 py-2 font-medium" style={{ color: COLORS.textSecondary }}>Custo</th>
+              <th className="text-right px-4 py-2 font-medium" style={{ color: COLORS.textSecondary }}>Venda</th>
+              <th className="px-4 py-2" />
+            </tr></thead>
+            <tbody>
+              {filtered.map((p) => {
+                const baixo = Number(p.quantidade) <= Number(p.estoque_minimo || 0);
+                return (
+                  <tr key={p.id} style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                    <td className="px-4 py-2.5" style={{ color: COLORS.textPrimary }}>
+                      <div className="flex items-center gap-2">
+                        {p.foto ? <img src={p.foto} alt="" style={{ height: 26, width: 26, objectFit: 'cover', borderRadius: 4, flexShrink: 0 }} /> : <div style={{ height: 26, width: 26, borderRadius: 4, backgroundColor: COLORS.surfaceAlt, flexShrink: 0 }} />}
+                        {p.nome}
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5" style={{ color: COLORS.textMuted }}>{p.categoria || '—'}</td>
+                    <td className="px-4 py-2.5 text-right" style={{ fontFamily: "'JetBrains Mono', monospace", color: baixo ? COLORS.danger : COLORS.textPrimary }}>{p.quantidade}{baixo && <Icon name="warning" size={12} className="inline ml-1 mb-0.5" />}</td>
+                    <td className="px-4 py-2.5 text-right" style={{ color: COLORS.textSecondary }}>{fmtMoney(p.preco_custo)}</td>
+                    <td className="px-4 py-2.5 text-right" style={{ color: COLORS.textSecondary }}>{fmtMoney(p.preco_venda)}</td>
+                    <td className="px-4 py-2.5"><div className="flex items-center justify-end gap-1">
+                      <button onClick={() => setVendendo(p)} className="p-1.5 rounded hover:opacity-70" title="Vender e lançar no caixa"><Icon name="check" size={14} color={COLORS.success} /></button>
+                      <button onClick={() => setEditing(p)} className="p-1.5 rounded hover:opacity-70"><Icon name="edit" size={14} color={COLORS.textSecondary} /></button>
+                      <button onClick={() => setDeleting(p)} className="p-1.5 rounded hover:opacity-70"><Icon name="trash" size={14} color={COLORS.danger} /></button>
+                    </div></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {editing !== null && <PecaForm peca={editing} error={formErr} onClose={() => { setEditing(null); setFormErr(''); }} onSave={save} />}
+      {deleting && <ConfirmModal message={`Excluir a peça "${deleting.nome}" do estoque?`} onCancel={() => setDeleting(null)} onConfirm={async () => { await table.remove(deleting.id); setDeleting(null); }} />}
+      {vendendo && <VendaModal peca={vendendo} onClose={() => setVendendo(null)} onConfirm={(data) => confirmarVenda(vendendo, data)} />}
+      {novaVenda && <VendaModal pecas={table.rows} onClose={() => setNovaVenda(false)} onConfirm={(data) => confirmarVenda(data.pecaEscolhida, data)} />}
+    </div>
+  );
+}
+function VendaModal({ peca: pecaFixa, pecas, onClose, onConfirm }) {
+  const [pecaId, setPecaId] = useState(pecaFixa?.id || pecas?.[0]?.id || '');
+  const peca = pecaFixa || (pecas || []).find((p) => p.id === pecaId);
+  const [quantidade, setQuantidade] = useState(1);
+  const [valorUnit, setValorUnit] = useState(pecaFixa?.preco_venda || '');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const total = (Number(quantidade) || 0) * (Number(valorUnit) || 0);
+
+  useEffect(() => {
+    if (!pecaFixa) {
+      const p = (pecas || []).find((x) => x.id === pecaId);
+      setValorUnit(p?.preco_venda || '');
+    }
+  }, [pecaId]);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!peca) return;
+    setSaving(true); setError('');
+    try {
+      await onConfirm({ pecaEscolhida: peca, quantidade, valorTotal: total, descricao: `Venda: ${peca.nome} x${quantidade}` });
+      onClose();
+    } catch (err) { setError(err.message); setSaving(false); }
+  };
+
+  return (
+    <Modal title={pecaFixa ? `Vender — ${pecaFixa.nome}` : 'Nova venda'} onClose={onClose}>
+      <form onSubmit={submit}>
+        {!pecaFixa && (
+          <Field label="Produto" required>
+            <Select value={pecaId} onChange={(e) => setPecaId(e.target.value)} required autoFocus>
+              {(pecas || []).map((p) => <option key={p.id} value={p.id}>{p.nome} (estoque: {p.quantidade})</option>)}
+            </Select>
+          </Field>
+        )}
+        <p className="text-xs mb-3" style={{ color: COLORS.textMuted }}>Isso desconta do estoque e lança uma entrada no caixa (Financeiro). Em estoque: {peca?.quantidade ?? '—'}.</p>
+        <div className="grid grid-cols-2 gap-x-4">
+          <Field label="Quantidade" required><Input type="number" min="1" max={peca?.quantidade || undefined} value={quantidade} onChange={(e) => setQuantidade(e.target.value)} required autoFocus={!!pecaFixa} /></Field>
+          <Field label="Valor unitário (R$)" required><Input type="number" step="0.01" min="0" value={valorUnit} onChange={(e) => setValorUnit(e.target.value)} required /></Field>
+        </div>
+        <p className="text-sm mb-3" style={{ color: COLORS.textPrimary }}>Total: <strong>{fmtMoney(total)}</strong></p>
+        {error && <p className="text-xs mb-2" style={{ color: COLORS.danger }}>{error}</p>}
+        <div className="flex justify-end gap-2 mt-4"><Button variant="secondary" type="button" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={saving}>{saving ? 'Confirmando…' : 'Confirmar venda'}</Button></div>
+      </form>
+    </Modal>
+  );
+}
+function PecaForm({ peca, error, onClose, onSave }) {
+  const [form, setForm] = useState({ id: peca.id, nome: peca.nome || '', categoria: peca.categoria || '', quantidade: peca.quantidade ?? 0, estoque_minimo: peca.estoque_minimo ?? 1, preco_custo: peca.preco_custo ?? '', preco_venda: peca.preco_venda ?? '', foto: peca.foto || '' });
+  const [fotoBusy, setFotoBusy] = useState(false);
+  const [fotoErr, setFotoErr] = useState('');
+  const submit = (e) => { e.preventDefault(); if (!form.nome.trim()) return; onSave(form); };
+  const handleFoto = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFotoBusy(true); setFotoErr('');
+    try { const url = await uploadFoto(file, 'produtos', 700); setForm({ ...form, foto: url }); }
+    catch (err) { setFotoErr(err.message); }
+    setFotoBusy(false);
+  };
+  return (
+    <Modal title={peca.id ? 'Editar peça' : 'Nova peça'} onClose={onClose}>
+      <form onSubmit={submit}>
+        <Field label="Foto do produto">
+          <div className="flex items-center gap-3">
+            {form.foto && <img src={form.foto} alt="" style={{ height: 48, width: 48, objectFit: 'cover', border: `1px solid ${COLORS.border}`, borderRadius: 4 }} />}
+            <input type="file" accept="image/*" onChange={handleFoto} className="text-xs" style={{ color: COLORS.textSecondary }} />
+            {form.foto && <button type="button" onClick={() => setForm({ ...form, foto: '' })} className="text-xs" style={{ color: COLORS.danger }}>Remover</button>}
+          </div>
+          {fotoBusy && <p className="text-xs mt-1" style={{ color: COLORS.textMuted }}>Enviando…</p>}
+          {fotoErr && <p className="text-xs mt-1" style={{ color: COLORS.danger }}>{fotoErr}</p>}
+        </Field>
+        <Field label="Nome da peça" required><Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="ex: Tela iPhone 12" required autoFocus /></Field>
+        <Field label="Categoria"><Input value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} placeholder="ex: Tela, Bateria, Conector" /></Field>
+        <div className="grid grid-cols-2 gap-x-4"><Field label="Quantidade em estoque"><Input type="number" min="0" value={form.quantidade} onChange={(e) => setForm({ ...form, quantidade: e.target.value })} /></Field><Field label="Estoque mínimo"><Input type="number" min="0" value={form.estoque_minimo} onChange={(e) => setForm({ ...form, estoque_minimo: e.target.value })} /></Field></div>
+        <div className="grid grid-cols-2 gap-x-4"><Field label="Preço de custo (R$)"><Input type="number" step="0.01" min="0" value={form.preco_custo} onChange={(e) => setForm({ ...form, preco_custo: e.target.value })} /></Field><Field label="Preço de venda (R$)"><Input type="number" step="0.01" min="0" value={form.preco_venda} onChange={(e) => setForm({ ...form, preco_venda: e.target.value })} /></Field></div>
+        {error && <p className="text-xs mb-2" style={{ color: COLORS.danger }}>{error}</p>}
+        <div className="flex justify-end gap-2 mt-4"><Button variant="secondary" type="button" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={fotoBusy}>Salvar</Button></div>
+      </form>
+    </Modal>
+  );
+}
+
+// ---------- Financeiro ----------
+function FinanceiroView({ table }) {
+  const [monthFilter, setMonthFilter] = useState(todayISO().slice(0, 7));
+  const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [formErr, setFormErr] = useState('');
+  const filtered = table.rows.filter((t) => (t.data || '').startsWith(monthFilter)).sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+  const receita = filtered.filter((t) => t.tipo === 'entrada').reduce((s, t) => s + Number(t.valor || 0), 0);
+  const despesa = filtered.filter((t) => t.tipo === 'saida').reduce((s, t) => s + Number(t.valor || 0), 0);
+
+  const save = async (data) => {
+    try {
+      const { id, ...rest } = data;
+      rest.valor = toNum(rest.valor);
+      if (id) await table.update(id, rest); else await table.insert(rest);
+      setEditing(null); setFormErr('');
+    } catch (e) { setFormErr(e.message); }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <h1 className="text-xl font-semibold" style={{ color: COLORS.textPrimary }}>Financeiro</h1>
+        <Button onClick={() => setEditing({})}><Icon name="plus" size={16} /> Novo lançamento</Button>
+      </div>
+      <ErrorBanner message={table.err} />
+      <div className="flex items-center gap-4 mb-4 flex-wrap">
+        <Input type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} style={{ width: 'auto' }} />
+        <div className="flex gap-4 text-sm"><span style={{ color: COLORS.success }}>Entradas: {fmtMoney(receita)}</span><span style={{ color: COLORS.danger }}>Saídas: {fmtMoney(despesa)}</span><span className="font-medium" style={{ color: COLORS.textPrimary }}>Saldo: {fmtMoney(receita - despesa)}</span></div>
+      </div>
+      {filtered.length === 0 ? <EmptyState icon="wallet" title="Nenhum lançamento neste mês" subtitle="Registre entradas e saídas para acompanhar o caixa." /> : (
+        <div className="rounded overflow-hidden" style={{ border: `1px solid ${COLORS.border}` }}>
+          {filtered.map((t) => (
+            <div key={t.id} className="flex items-center justify-between px-4 py-3 gap-3" style={{ backgroundColor: COLORS.surface, borderBottom: `1px solid ${COLORS.border}` }}>
+              <div className="flex items-center gap-3 min-w-0">
+                <Icon name={t.tipo === 'entrada' ? 'up' : 'down'} size={14} color={t.tipo === 'entrada' ? COLORS.success : COLORS.danger} />
+                <div className="min-w-0"><p className="text-sm font-medium truncate" style={{ color: COLORS.textPrimary }}>{t.descricao}</p><p className="text-xs" style={{ color: COLORS.textMuted }}>{fmtDate(t.data)}{t.categoria ? ` · ${t.categoria}` : ''}</p></div>
+              </div>
+              <div className="flex items-center gap-3 shrink-0">
+                <p className="text-sm font-medium" style={{ fontFamily: "'JetBrains Mono', monospace", color: t.tipo === 'entrada' ? COLORS.success : COLORS.danger }}>{t.tipo === 'entrada' ? '+ ' : '- '}{fmtMoney(t.valor)}</p>
+                <button onClick={() => setEditing(t)} className="p-1.5 rounded hover:opacity-70"><Icon name="edit" size={14} color={COLORS.textSecondary} /></button>
+                <button onClick={() => setDeleting(t)} className="p-1.5 rounded hover:opacity-70"><Icon name="trash" size={14} color={COLORS.danger} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {editing !== null && <TransacaoForm transacao={editing} error={formErr} onClose={() => { setEditing(null); setFormErr(''); }} onSave={save} />}
+      {deleting && <ConfirmModal message={`Excluir o lançamento "${deleting.descricao}"?`} onCancel={() => setDeleting(null)} onConfirm={async () => { await table.remove(deleting.id); setDeleting(null); }} />}
+    </div>
+  );
+}
+function TransacaoForm({ transacao, error, onClose, onSave }) {
+  const [form, setForm] = useState({ id: transacao.id, tipo: transacao.tipo || 'entrada', descricao: transacao.descricao || '', valor: transacao.valor ?? '', categoria: transacao.categoria || '', data: transacao.data || todayISO() });
+  const submit = (e) => { e.preventDefault(); if (!form.descricao.trim() || !form.valor) return; onSave(form); };
+  return (
+    <Modal title={transacao.id ? 'Editar lançamento' : 'Novo lançamento'} onClose={onClose}>
+      <form onSubmit={submit}>
+        <div className="grid grid-cols-2 gap-x-4"><Field label="Tipo"><Select value={form.tipo} onChange={(e) => setForm({ ...form, tipo: e.target.value })}><option value="entrada">Entrada</option><option value="saida">Saída</option></Select></Field><Field label="Data"><Input type="date" value={form.data} onChange={(e) => setForm({ ...form, data: e.target.value })} /></Field></div>
+        <Field label="Descrição" required><Input value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="ex: Reparo OS #123" required autoFocus /></Field>
+        <div className="grid grid-cols-2 gap-x-4"><Field label="Valor (R$)" required><Input type="number" step="0.01" min="0" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} required /></Field><Field label="Categoria"><Input value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })} placeholder="ex: Serviço, Peças, Aluguel" /></Field></div>
+        {error && <p className="text-xs mb-2" style={{ color: COLORS.danger }}>{error}</p>}
+        <div className="flex justify-end gap-2 mt-4"><Button variant="secondary" type="button" onClick={onClose}>Cancelar</Button><Button type="submit">Salvar</Button></div>
+      </form>
+    </Modal>
+  );
+}
+
+function resizeImageBlob(file, maxSize) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          const ratio = Math.min(maxSize / width, maxSize / height);
+          width = Math.round(width * ratio); height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Não foi possível processar essa imagem.'))), 'image/jpeg', 0.82);
+      };
+      img.onerror = () => reject(new Error('Não foi possível ler essa imagem.'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadFoto(file, pasta, maxSize) {
+  const blob = await resizeImageBlob(file, maxSize || 1000);
+  const path = `${pasta}/${uid()}.jpg`;
+  const { error } = await supabase.storage.from('fotos').upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from('fotos').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// ---------- Config ----------
+function resizeImageFile(file, maxSize) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxSize || height > maxSize) {
+          const ratio = Math.min(maxSize / width, maxSize / height);
+          width = Math.round(width * ratio); height = Math.round(height * ratio);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = () => reject(new Error('Não foi possível ler essa imagem.'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Não foi possível ler o arquivo.'));
+    reader.readAsDataURL(file);
+  });
+}
+function RestaurarBackup() {
+  const [parsed, setParsed] = useState(null);
+  const [counts, setCounts] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+  const ORDEM = ['clientes', 'estoque', 'ordens', 'financeiro', 'config'];
+
+  const handleFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setErr(''); setMsg(''); setParsed(null); setCounts(null);
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      const c = {};
+      ORDEM.forEach((t) => { c[t] = Array.isArray(data[t]) ? data[t].length : 0; });
+      setParsed(data);
+      setCounts(c);
+    } catch (er) { setErr('Arquivo inválido: ' + er.message); }
+    e.target.value = '';
+  };
+
+  const confirmar = async () => {
+    setBusy(true); setErr('');
+    try {
+      for (const t of ORDEM) {
+        const rows = parsed[t];
+        if (!Array.isArray(rows) || rows.length === 0) continue;
+        const { error } = await supabase.from(t).upsert(rows, { onConflict: 'id' });
+        if (error) throw new Error(`"${t}": ${error.message}`);
+      }
+      setMsg('Backup restaurado com sucesso. Recarregue a página para ver os dados atualizados.');
+      setParsed(null); setCounts(null);
+    } catch (er) { setErr(er.message); }
+    setBusy(false);
+  };
+
+  return (
+    <div className="p-3 rounded mb-4" style={{ backgroundColor: COLORS.surfaceAlt, border: `1px solid ${COLORS.border}` }}>
+      <p className="text-sm font-medium mb-1" style={{ color: COLORS.textPrimary }}>Restaurar backup</p>
+      <p className="text-xs mb-2" style={{ color: COLORS.textMuted }}>Adiciona ou atualiza os dados do arquivo .json — não apaga nada que já existe hoje.</p>
+      {!parsed && <input type="file" accept="application/json" onChange={handleFile} className="text-xs" style={{ color: COLORS.textSecondary }} />}
+      {counts && (
+        <div className="mt-2">
+          <p className="text-xs mb-2" style={{ color: COLORS.textPrimary }}>
+            Encontrado no arquivo: {counts.clientes} clientes, {counts.ordens} ordens, {counts.estoque} peças, {counts.financeiro} lançamentos.
+          </p>
+          <div className="flex gap-2">
+            <Button type="button" variant="secondary" onClick={() => { setParsed(null); setCounts(null); }} disabled={busy}>Cancelar</Button>
+            <Button type="button" onClick={confirmar} disabled={busy}>{busy ? 'Restaurando…' : 'Confirmar restauração'}</Button>
+          </div>
+        </div>
+      )}
+      {msg && <p className="text-xs mt-2" style={{ color: COLORS.success }}>{msg}</p>}
+      {err && <p className="text-xs mt-2" style={{ color: COLORS.danger }}>{err}</p>}
+    </div>
+  );
+}
+function ConfigModal({ config, onClose, onSave }) {
+  const [form, setForm] = useState({ ...DEFAULT_CONFIG, ...config });
+  const [error, setError] = useState('');
+  const [logoBusy, setLogoBusy] = useState(false);
+  const [backupBusy, setBackupBusy] = useState(false);
+  const submit = async (e) => {
+    e.preventDefault();
+    try { await onSave(form); onClose(); } catch (err) { setError(err.message); }
+  };
+  const handleLogo = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setLogoBusy(true); setError('');
+    try { const dataUrl = await resizeImageFile(file, 300); setForm({ ...form, logo: dataUrl }); }
+    catch (err) { setError(err.message); }
+    setLogoBusy(false);
+  };
+  const baixarBackup = async () => {
+    setBackupBusy(true); setError('');
+    try {
+      const tabelas = ['clientes', 'ordens', 'estoque', 'financeiro', 'config'];
+      const resultado = { exportado_em: new Date().toISOString() };
+      for (const t of tabelas) {
+        const { data, error: err } = await supabase.from(t).select('*');
+        if (err) throw err;
+        resultado[t] = data;
+      }
+      const blob = new Blob([JSON.stringify(resultado, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = `backup-loja-${todayISO()}.json`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) { setError('Falha ao gerar backup: ' + err.message); }
+    setBackupBusy(false);
+  };
+  return (
+    <Modal title="Dados da loja" onClose={onClose}>
+      <p className="text-xs mb-3" style={{ color: COLORS.textMuted }}>Essas informações aparecem no cabeçalho dos recibos emitidos.</p>
+      <div className="flex items-center justify-between p-3 rounded mb-4" style={{ backgroundColor: COLORS.surfaceAlt, border: `1px solid ${COLORS.border}` }}>
+        <div><p className="text-sm font-medium" style={{ color: COLORS.textPrimary }}>Backup dos dados</p><p className="text-xs" style={{ color: COLORS.textMuted }}>Baixa clientes, ordens, estoque e financeiro num arquivo.</p></div>
+        <Button type="button" variant="secondary" onClick={baixarBackup} disabled={backupBusy}>{backupBusy ? 'Gerando…' : 'Baixar backup'}</Button>
+      </div>
+      <RestaurarBackup />
+      <form onSubmit={submit}>
+        <Field label="Logo da loja">
+          <div className="flex items-center gap-3">
+            {form.logo && <img src={form.logo} alt="logo" style={{ height: 44, width: 44, objectFit: 'contain', border: `1px solid ${COLORS.border}`, borderRadius: 4 }} />}
+            <input type="file" accept="image/*" onChange={handleLogo} className="text-xs" style={{ color: COLORS.textSecondary }} />
+            {form.logo && <button type="button" onClick={() => setForm({ ...form, logo: '' })} className="text-xs" style={{ color: COLORS.danger }}>Remover</button>}
+          </div>
+          {logoBusy && <p className="text-xs mt-1" style={{ color: COLORS.textMuted }}>Processando imagem…</p>}
+        </Field>
+        <Field label="Nome da loja" required><Input value={form.nome_loja} onChange={(e) => setForm({ ...form, nome_loja: e.target.value })} required /></Field>
+        <Field label="CNPJ"><Input value={form.cnpj} onChange={(e) => setForm({ ...form, cnpj: e.target.value })} placeholder="00.000.000/0000-00" /></Field>
+        <Field label="Endereço"><Input value={form.endereco} onChange={(e) => setForm({ ...form, endereco: e.target.value })} /></Field>
+        <Field label="Telefone"><Input value={form.telefone} onChange={(e) => setForm({ ...form, telefone: e.target.value })} /></Field>
+        <div className="grid grid-cols-2 gap-x-4"><Field label="Garantia legal (dias)"><Input type="number" min="0" value={form.prazo_garantia_dias} onChange={(e) => setForm({ ...form, prazo_garantia_dias: e.target.value })} /></Field><Field label="Prazo de retirada (dias)"><Input type="number" min="0" value={form.prazo_retirada_dias} onChange={(e) => setForm({ ...form, prazo_retirada_dias: e.target.value })} /></Field></div>
+        {error && <p className="text-xs mb-2" style={{ color: COLORS.danger }}>{error}</p>}
+        <div className="flex justify-end gap-2 mt-4"><Button variant="secondary" type="button" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={logoBusy}>Salvar</Button></div>
+      </form>
+    </Modal>
+  );
+}
+
+// ---------- Equipe ----------
+function EquipeView({ table, currentUserId }) {
+  const [adding, setAdding] = useState(false);
+  const rows = [...table.rows].sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <h1 className="text-xl font-semibold" style={{ color: COLORS.textPrimary }}>Equipe</h1>
+        <Button onClick={() => setAdding(true)}><Icon name="plus" size={16} /> Adicionar funcionário</Button>
+      </div>
+      <ErrorBanner message={table.err} />
+      {rows.length === 0 ? <EmptyState icon="team" title="Nenhum usuário encontrado" /> : (
+        <div className="rounded overflow-hidden" style={{ border: `1px solid ${COLORS.border}` }}>
+          {rows.map((p) => (
+            <EquipeRow key={p.id} p={p} isSelf={p.id === currentUserId} onSave={(data) => table.update(p.id, data)} />
+          ))}
+        </div>
+      )}
+      {adding && <AdicionarFuncionarioModal onClose={() => setAdding(false)} onCreated={() => table.reload()} />}
+    </div>
+  );
+}
+function EquipeRow({ p, isSelf, onSave }) {
+  const [nome, setNome] = useState(p.nome || '');
+  return (
+    <div className="flex items-center justify-between px-4 py-3 gap-3 flex-wrap" style={{ backgroundColor: COLORS.surface, borderBottom: `1px solid ${COLORS.border}` }}>
+      <Input value={nome} onChange={(e) => setNome(e.target.value)} onBlur={() => nome !== p.nome && onSave({ nome })} style={{ maxWidth: 260 }} />
+      <div className="flex items-center gap-2">
+        {isSelf && <span className="text-xs" style={{ color: COLORS.textMuted }}>(você)</span>}
+        <Select value={p.role} disabled={isSelf} onChange={(e) => onSave({ role: e.target.value })} style={{ width: 'auto' }}>
+          <option value="funcionario">Funcionário</option>
+          <option value="dono">Dono</option>
+        </Select>
+      </div>
+    </div>
+  );
+}
+function AdicionarFuncionarioModal({ onClose, onCreated }) {
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [role, setRole] = useState('funcionario');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true); setError('');
+    try {
+      const { data, error: signErr } = await supabaseAuthOnly.auth.signUp({ email, password: senha });
+      if (signErr) throw signErr;
+      const newId = data.user?.id;
+      if (newId) {
+        await new Promise((r) => setTimeout(r, 900));
+        const { error: upErr } = await supabase.from('profiles').upsert({ id: newId, nome: nome || email, role });
+        if (upErr) throw upErr;
+      }
+      onCreated();
+      onClose();
+    } catch (err) { setError(err.message); }
+    setSaving(false);
+  };
+
+  return (
+    <Modal title="Adicionar funcionário" onClose={onClose}>
+      <form onSubmit={submit}>
+        <Field label="Nome" required><Input value={nome} onChange={(e) => setNome(e.target.value)} required autoFocus /></Field>
+        <Field label="E-mail (login)" required><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required /></Field>
+        <Field label="Senha" required><Input type="password" value={senha} onChange={(e) => setSenha(e.target.value)} minLength={6} required /></Field>
+        <Field label="Papel"><Select value={role} onChange={(e) => setRole(e.target.value)}><option value="funcionario">Funcionário</option><option value="dono">Dono</option></Select></Field>
+        {error && <p className="text-xs mb-2" style={{ color: COLORS.danger }}>{error}</p>}
+        <div className="flex justify-end gap-2 mt-4"><Button variant="secondary" type="button" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={saving}>{saving ? 'Criando…' : 'Criar acesso'}</Button></div>
+      </form>
+      <p className="text-xs mt-3" style={{ color: COLORS.textMuted }}>Dependendo da configuração do Supabase, essa pessoa pode precisar confirmar o e-mail antes de conseguir entrar. Para liberar o acesso na hora, desative "Confirm email" em Authentication &gt; Providers &gt; Email no painel do Supabase.</p>
+    </Modal>
+  );
+}
+
+// ---------- Main app (post-login) ----------
+function MainApp({ profile, userEmail }) {
+  const [tab, setTab] = useState('dashboard');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
+  const isDono = profile.role === 'dono';
+
+  const clientesT = useTable('clientes', 'nome');
+  const ordensT = useTable('ordens', 'data_entrada');
+  const estoqueT = useTable('estoque', 'nome');
+  const financeiroT = useTable('financeiro', 'data');
+  const configT = useTable('config', 'id');
+  const equipeT = useTable('profiles', 'nome');
+  const config = configT.rows[0] || DEFAULT_CONFIG;
+
+  useEffect(() => { if (!isDono && (tab === 'financeiro' || tab === 'equipe')) setTab('dashboard'); }, [isDono, tab]);
+
+  const navItems = [
+    { id: 'dashboard', label: 'Painel', icon: 'home' },
+    { id: 'clientes', label: 'Clientes', icon: 'users' },
+    { id: 'ordens', label: 'Ordens de serviço', icon: 'wrench' },
+    { id: 'estoque', label: 'Estoque', icon: 'package' },
+    ...(isDono ? [{ id: 'financeiro', label: 'Financeiro', icon: 'wallet' }] : []),
+    ...(isDono ? [{ id: 'equipe', label: 'Equipe', icon: 'team' }] : []),
+  ];
+
+  const saveConfig = async (data) => {
+    const { id, ...rest } = data;
+    rest.prazo_garantia_dias = toNum(rest.prazo_garantia_dias) ?? 90;
+    rest.prazo_retirada_dias = toNum(rest.prazo_retirada_dias) ?? 90;
+    if (config.id) await configT.update(config.id, rest); else await configT.insert({ id: 1, ...rest });
+  };
+
+  return (
+    <div className="min-h-screen flex" style={{ backgroundColor: COLORS.bg }}>
+      <Sidebar items={navItems} active={tab} onNavigate={setTab} mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} isDono={isDono} onOpenConfig={() => setConfigOpen(true)} />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="flex items-center justify-between gap-3 px-4 py-3" style={{ backgroundColor: COLORS.surface, borderBottom: `1px solid ${COLORS.border}` }}>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setMobileOpen(true)} className="p-1.5 md:hidden"><Icon name="menu" size={20} color={COLORS.textPrimary} /></button>
+            <p className="font-semibold md:hidden" style={{ fontFamily: "'JetBrains Mono', monospace", color: COLORS.textPrimary }}>Bancada</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs hidden sm:inline" style={{ color: COLORS.textMuted }}>{userEmail} · {isDono ? 'dono' : 'funcionário'}</span>
+            <button onClick={() => supabase.auth.signOut()} className="text-xs px-2 py-1.5 rounded font-medium" style={{ color: COLORS.danger, border: `1px solid ${COLORS.border}` }}>Sair</button>
+          </div>
+        </header>
+        <main className="flex-1 p-4 md:p-8 max-w-6xl w-full mx-auto">
+          {tab === 'dashboard' && <Dashboard clientes={clientesT.rows} ordens={ordensT.rows} estoque={estoqueT.rows} financeiro={financeiroT.rows} isDono={isDono} onNavigate={setTab} />}
+          {tab === 'clientes' && <ClientesView table={clientesT} />}
+          {tab === 'ordens' && <OrdensView table={ordensT} clientesRows={clientesT.rows} config={config} onLancarFinanceiro={financeiroT.insert} />}
+          {tab === 'estoque' && <EstoqueView table={estoqueT} onLancarFinanceiro={financeiroT.insert} />}
+          {tab === 'financeiro' && isDono && <FinanceiroView table={financeiroT} />}
+          {tab === 'equipe' && isDono && <EquipeView table={equipeT} currentUserId={profile.id} />}
+        </main>
+      </div>
+      {configOpen && <ConfigModal config={config} onClose={() => setConfigOpen(false)} onSave={saveConfig} />}
+    </div>
+  );
+}
+
+// ---------- App root (auth gate) ----------
+function App() {
+  const [session, setSession] = useState(undefined);
+  const [profile, setProfile] = useState(null);
+  const [profileErr, setProfileErr] = useState('');
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session || null));
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, sess) => setSession(sess));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (session === undefined) return;
+    if (!session) { setProfile(null); return; }
+    (async () => {
+      let { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+      if (!error && !data) {
+        const ins = await supabase.from('profiles').insert({ id: session.user.id, nome: session.user.email, role: 'funcionario' }).select().maybeSingle();
+        data = ins.data; error = ins.error;
+      }
+      if (error) setProfileErr(error.message); else setProfile(data);
+    })();
+  }, [session]);
+
+  if (session === undefined) return <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: COLORS.bg }}><p className="text-sm" style={{ color: COLORS.textMuted }}>Carregando…</p></div>;
+  if (!session) return <LoginScreen />;
+  if (profileErr) return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-3 text-center" style={{ backgroundColor: COLORS.bg }}>
+      <p className="text-sm" style={{ color: COLORS.danger }}>Não foi possível carregar seu perfil: {profileErr}</p>
+      <button onClick={() => supabase.auth.signOut()} className="text-sm px-3 py-1.5 rounded font-medium" style={{ border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary }}>Sair e tentar de novo</button>
+    </div>
+  );
+  if (!profile) return <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: COLORS.bg }}><p className="text-sm" style={{ color: COLORS.textMuted }}>Carregando perfil…</p></div>;
+
+  return <MainApp profile={profile} userEmail={session.user.email} />;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+} catch (e) {
+  document.getElementById('root').innerHTML = '<pre style="padding:20px;color:#B0402F;white-space:pre-wrap;font-family:monospace;font-size:12px;text-align:left;max-width:700px;margin:40px auto">Erro ao carregar o sistema:\n\n' + (e && e.message ? e.message : String(e)) + '</pre>';
+  console.error(e);
+}
+</script>
+</body>
 </html>
