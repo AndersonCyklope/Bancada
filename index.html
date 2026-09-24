@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bancada</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">B</div>
+          <div>
+            <p class="eyebrow">Workspace</p>
+            <h1>Bancada</h1>
+          </div>
+        </div>
+
+        <nav class="nav">
+          <button class="nav-item active">Overview</button>
+          <button class="nav-item">Projects</button>
+          <button class="nav-item">Analytics</button>
+          <button class="nav-item">Team</button>
+          <button class="nav-item">Settings</button>
+        </nav>
+
+        <div class="status-card">
+          <p>System status</p>
+          <strong>Healthy</strong>
+          <span>All services online</span>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Dashboard</p>
+            <h2>Operations overview</h2>
+          </div>
+          <button class="primary-btn">New project</button>
+        </header>
+
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow accent">Live workspace</p>
+            <h3>Keep your team moving with clarity.</h3>
+            <p>
+              Bring projects, metrics, and delivery updates together in one focused place.
+            </p>
+            <div class="hero-actions">
+              <button class="primary-btn">Launch sprint</button>
+              <button class="secondary-btn">View report</button>
+            </div>
+          </div>
+          <div class="hero-graph">
+            <div class="chart-bars">
+              <span style="height: 28%"></span>
+              <span style="height: 52%"></span>
+              <span style="height: 64%"></span>
+              <span style="height: 42%"></span>
+              <span style="height: 78%"></span>
+              <span style="height: 90%"></span>
+              <span style="height: 68%"></span>
+            </div>
+            <div class="chart-legend">
+              <span><i class="dot blue"></i> Cycle</span>
+              <span><i class="dot green"></i> Quality</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="cards">
+          <article class="metric-card">
+            <p>Active tasks</p>
+            <h3 id="tasks-count">128</h3>
+            <span class="trend up">+12.4% vs last week</span>
+          </article>
+          <article class="metric-card">
+            <p>Velocity</p>
+            <h3 id="velocity-value">84%</h3>
+            <span class="trend up">+6.1% this sprint</span>
+          </article>
+          <article class="metric-card">
+            <p>Team capacity</p>
+            <h3 id="capacity-value">91%</h3>
+            <span class="trend down">-3.2% after planned leave</span>
+          </article>
+        </section>
+
+        <section class="panel-grid">
+          <article class="panel">
+            <div class="panel-header">
+              <h4>Recent work</h4>
+              <button>Filter</button>
+            </div>
+            <ul class="activity-list">
+              <li>
+                <div class="bullet blue"></div>
+                <div>
+                  <strong>Marketing launch</strong>
+                  <small>Updated campaign checklist</small>
+                </div>
+                <span>2h ago</span>
+              </li>
+              <li>
+                <div class="bullet green"></div>
+                <div>
+                  <strong>Product sync</strong>
+                  <small>Shared sprint review notes</small>
+                </div>
+                <span>4h ago</span>
+              </li>
+              <li>
+                <div class="bullet purple"></div>
+                <div>
+                  <strong>Client handoff</strong>
+                  <small>Delivered revised roadmap</small>
+                </div>
+                <span>1d ago</span>
+              </li>
+            </ul>
+          </article>
+
+          <article class="panel">
+            <div class="panel-header">
+              <h4>Priority list</h4>
+              <button>See all</button>
+            </div>
+            <ul class="priority-list">
+              <li>
+                <span class="title">Research backlog</span>
+                <span class="badge">High</span>
+              </li>
+              <li>
+                <span class="title">Client onboarding</span>
+                <span class="badge medium">Medium</span>
+              </li>
+              <li>
+                <span class="title">Analytics cleanup</span>
+                <span class="badge low">Low</span>
+              </li>
+            </ul>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
